@@ -1,0 +1,28 @@
+{
+    "version": "2.0.0",
+    "type": "shell",
+    "command": "go",
+    "cwd": "${workspaceFolder}",
+    "tasks": [
+        {
+            "label": "install",
+            "args": ["install", "-v", "./..."],
+            "group": "build",
+        },
+        {
+            "label": "build",
+            "args": ["build", "${file}"],
+            "group": "build",
+        },
+        {
+            "label": "run",
+            "args": ["run", "."],
+            "group": "build",
+        },
+        {
+            "label": "test",
+            "args": ["test", "-v", "./..."],
+            "group": "test",
+        },
+    ],
+}
