@@ -1,15 +1,43 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
-	"fmt"
 	"log"
-	"os"
-	"strconv"
 
 	"github.com/getlantern/systray"
 	"github.com/gorilla/websocket"
 )
+
+//go:embed assets/icons/0-1.ico
+var icon0 []byte
+
+//go:embed assets/icons/1-1.ico
+var icon1 []byte
+
+//go:embed assets/icons/2-1.ico
+var icon2 []byte
+
+//go:embed assets/icons/3-1.ico
+var icon3 []byte
+
+//go:embed assets/icons/4-1.ico
+var icon4 []byte
+
+//go:embed assets/icons/5-1.ico
+var icon5 []byte
+
+//go:embed assets/icons/6-1.ico
+var icon6 []byte
+
+//go:embed assets/icons/7-1.ico
+var icon7 []byte
+
+//go:embed assets/icons/8-1.ico
+var icon8 []byte
+
+//go:embed assets/icons/9-1.ico
+var icon9 []byte
 
 type GlazeWmMessage[T any] struct {
 	Success       bool   `json:"successs"`
@@ -90,12 +118,16 @@ func loadIcons() error {
 	log.Println("Loading icons")
 	for i := 0; i <= 9; i++ {
 		// Icon source: https://github.com/urob/komotray
-		icon, err := os.ReadFile(fmt.Sprint("assets/icons/", i, "-1.ico"))
-		if err != nil {
-			return err
-		}
-
-		iconsByNumber[strconv.Itoa(i)] = icon
+		iconsByNumber["0"] = icon0
+		iconsByNumber["1"] = icon1
+		iconsByNumber["2"] = icon2
+		iconsByNumber["3"] = icon3
+		iconsByNumber["4"] = icon4
+		iconsByNumber["5"] = icon5
+		iconsByNumber["6"] = icon6
+		iconsByNumber["7"] = icon7
+		iconsByNumber["8"] = icon8
+		iconsByNumber["9"] = icon9
 	}
 
 	return nil
