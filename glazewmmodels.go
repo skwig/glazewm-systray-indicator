@@ -47,7 +47,6 @@ type EventWrapper struct {
 	Value Event
 }
 
-// TODO: Base events
 type FocusChangedEvent struct {
 	EventType        string                  `json:"eventType"`
 	FocusedContainer FocusedContainerWrapper `json:"focusedContainer"`
@@ -68,11 +67,18 @@ func (wrapper *EventWrapper) UnmarshalJSON(data []byte) error {
 
 	switch distriminator.Type {
 	case "focus_changed":
-		var focusChanged FocusChangedEvent
-		if err := json.Unmarshal(data, &focusChanged); err != nil {
+		var event FocusChangedEvent
+		if err := json.Unmarshal(data, &event); err != nil {
 			return err
 		}
-		wrapper.Value = focusChanged
+		wrapper.Value = event
+
+	case "workspace_activated":
+		var event WorkspaceActivatedEvent
+		if err := json.Unmarshal(data, &event); err != nil {
+			return err
+		}
+		wrapper.Value = event
 	default:
 		return errors.New(fmt.Sprintf("unknown type: %s", distriminator.Type))
 	}
@@ -123,4 +129,13 @@ func (wrapper *FocusedContainerWrapper) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+type WorkspaceActivatedEvent struct {
+	EventType          string    `json:"eventType"`
+	ActivatedWorkspace Workspace `json:"activatedWorkspace"`
+}
+
+func (event WorkspaceActivatedEvent) GetEventType() string {
+	return event.EventType
 }

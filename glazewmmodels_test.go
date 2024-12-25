@@ -134,3 +134,53 @@ func TestFocusChangedWindow(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestWorkspaceActivated(t *testing.T) {
+	jsonData := `
+    {
+      "messageType": "event_subscription",
+      "data": {
+        "eventType": "workspace_activated",
+        "activatedWorkspace": {
+          "type": "workspace",
+          "id": "f6279441-b65b-4f80-9120-7adede0e4b89",
+          "name": "8",
+          "displayName": "8",
+          "parentId": "9c16720d-2ba9-4f11-ab79-913b1f2afe1d",
+          "children": [],
+          "childFocusOrder": [],
+          "hasFocus": false,
+          "isDisplayed": false,
+          "width": 2860,
+          "height": 1684,
+          "x": 10,
+          "y": 10,
+          "tilingDirection": "horizontal"
+        }
+      },
+      "error": null,
+      "subscriptionId": "efbc0137-19cf-40ba-8b8d-c7b51c3b6726",
+      "success": true
+    }
+    `
+
+	var message GlazeWmMessage[WorkspaceActivatedEvent]
+	if err := json.Unmarshal([]byte(jsonData), &message); err != nil {
+		t.Fatal("Error:", err)
+		return
+	}
+
+	diff := cmp.Diff(message.Data.ActivatedWorkspace,
+		Workspace{
+			Type:        "workspace",
+			Id:          "f6279441-b65b-4f80-9120-7adede0e4b89",
+			Name:        "8",
+			DisplayName: "8",
+			ParentId:    "9c16720d-2ba9-4f11-ab79-913b1f2afe1d",
+			HasFocus:    false,
+			IsDisplayed: false})
+
+	if diff != "" {
+		t.Fatal(diff)
+	}
+}
