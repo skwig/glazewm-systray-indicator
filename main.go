@@ -71,7 +71,18 @@ func reactToWorkspaceChanges(connection *websocket.Conn) {
 
 		// TODO: Edge case after switching to a new workspace
 		// 2024/12/09 21:54:13 Received  {"messageType":"event_subscription","data":{"eventType":"focus_changed","focusedContainer":{"type":"workspace","id":"9880001b-c245-4921-8748-f1774c532d4a","name":"7","displayName":"7","parentId":"f0bdd9e0-37b7-4572-b8ac-fa0203dd0886","children":[],"childFocusOrder":[],"hasFocus":true,"isDisplayed":true,"width":2548,"height":1378,"x":-2554,"y":6,"tilingDirection":"horizontal"}},"error":null,"subscriptionId":"08c01082-4b94-4731-b794-1b3147f180c1","success":true}
-		workspaceName, ok := workspacesById[message.Data.FocusedContainer.ParentId]
+
+		var workspaceId string
+		switch s := message.Data.FocusedContainer.Value.(type) {
+		case Window:
+			workspaceId = s.ParentId
+		case Workspace:
+			workspaceId = s.Id
+		default:
+			log.Fatalf("Unknown type %s", s)
+		}
+
+		workspaceName, ok := workspacesById[workspaceId]
 		if !ok {
 			log.Println("Unknown workspace", string(buf))
 			// workspaceName = workspacesById[message.Data.FocusedContainer.Id]

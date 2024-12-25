@@ -2,91 +2,135 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-type AnimalWrapper struct {
-	Animal
-}
+func TestFocusChangedWorkspace(t *testing.T) {
+	jsonData := `
+    {
+      "messageType": "event_subscription",
+      "data": {
+        "eventType": "focus_changed",
+        "focusedContainer": {
+          "type": "workspace",
+          "id": "7ff3ae2b-d00d-48b5-b216-9903ae14373c",
+          "name": "7",
+          "displayName": "7",
+          "parentId": "c3cdcf92-f07b-41b7-8273-f388c6a0e40b",
+          "children": [],
+          "childFocusOrder": [],
+          "hasFocus": true,
+          "isDisplayed": true,
+          "width": 2860,
+          "height": 1684,
+          "x": 10,
+          "y": 10,
+          "tilingDirection": "horizontal"
+        }
+      },
+      "error": null,
+      "subscriptionId": "efbc0137-19cf-40ba-8b8d-c7b51c3b6726",
+      "success": true
+    }
+    `
 
-type Animal interface {
-	GetType() string
-}
-
-type Cat struct {
-	Type  string `json:"type"`
-	Name  string `json:"name"`
-	Meows bool   `json:"meows"`
-}
-
-func (c Cat) GetType() string {
-	return c.Type
-}
-
-type Dog struct {
-	Type  string `json:"type"`
-	Name  string `json:"name"`
-	Barks bool   `json:"barks"`
-}
-
-func (d Dog) GetType() string {
-	return d.Type
-}
-
-// Implement the custom UnmarshalJSON method
-func (a *AnimalWrapper) UnmarshalJSON(data []byte) error {
-	// Check the "type" field first
-	var wrapper struct {
-		Type string `json:"type"`
-	}
-	if err := json.Unmarshal(data, &wrapper); err != nil {
-		return err
-	}
-
-	switch wrapper.Type {
-	case "cat":
-		var cat Cat
-		if err := json.Unmarshal(data, &cat); err != nil {
-			return err
-		}
-		a.Animal = cat
-	case "dog":
-		var dog Dog
-		if err := json.Unmarshal(data, &dog); err != nil {
-			return err
-		}
-		a.Animal = dog
-	default:
-		return fmt.Errorf("unknown type: %s", wrapper.Type)
-	}
-
-	return nil
-}
-
-// Main function
-func TestFoo(t *testing.T) {
-	jsonData := `{ "type": "cat", "name": "Whiskers", "meows": true }`
-
-	var animalAdapter AnimalWrapper
-	if err := json.Unmarshal([]byte(jsonData), &animalAdapter); err != nil {
+	var message GlazeWmMessage[FocusChangedEvent]
+	if err := json.Unmarshal([]byte(jsonData), &message); err != nil {
 		t.Fatal("Error:", err)
 		return
 	}
 
-	switch a := animalAdapter.Animal.(type) {
-	case Cat:
-		fmt.Printf("meows %v", a.Meows)
-	case Dog:
-		fmt.Printf("barsk %v", a.Barks)
-	default:
-		t.Fatalf("Unknown type %s", a)
+	diff := cmp.Diff(message.Data.FocusedContainer.Value,
+		Workspace{
+			Type:        "workspace",
+			Id:          "7ff3ae2b-d00d-48b5-b216-9903ae14373c",
+			Name:        "7",
+			DisplayName: "7",
+			ParentId:    "c3cdcf92-f07b-41b7-8273-f388c6a0e40b",
+			HasFocus:    true,
+			IsDisplayed: true})
+
+	if diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestFocusChangedWindow(t *testing.T) {
+	jsonData := `
+    {
+      "messageType": "event_subscription",
+      "data": {
+        "eventType": "focus_changed",
+        "focusedContainer": {
+          "type": "window",
+          "id": "db75115c-f333-46fb-a87b-eef291a530c1",
+          "parentId": "8f0ea4a4-17c0-4db6-aea4-f5b22a5c0726",
+          "hasFocus": true,
+          "tilingSize": 1.0,
+          "width": 2860,
+          "height": 1684,
+          "x": 10,
+          "y": 10,
+          "state": {
+            "type": "tiling"
+          },
+          "prevState": {
+            "type": "minimized"
+          },
+          "displayState": "showing",
+          "borderDelta": {
+            "left": {
+              "amount": 0.0,
+              "unit": "pixel"
+            },
+            "top": {
+              "amount": 0.0,
+              "unit": "pixel"
+            },
+            "right": {
+              "amount": 0.0,
+              "unit": "pixel"
+            },
+            "bottom": {
+              "amount": 0.0,
+              "unit": "pixel"
+            }
+          },
+          "floatingPlacement": {
+            "left": 725,
+            "top": 87,
+            "right": 2156,
+            "bottom": 1617
+          },
+          "handle": 985126,
+          "title": "Comparing and Diffing Objects in Go Tests – Tabstop - Google Chrome",
+          "className": "Chrome_WidgetWin_1",
+          "processName": "chrome",
+          "activeDrag": null
+        }
+      },
+      "error": null,
+      "subscriptionId": "efbc0137-19cf-40ba-8b8d-c7b51c3b6726",
+      "success": true
+    }
+    `
+
+	var message GlazeWmMessage[FocusChangedEvent]
+	if err := json.Unmarshal([]byte(jsonData), &message); err != nil {
+		t.Fatal("Error:", err)
+		return
 	}
 
-	equals := cmp.Equal(animalAdapter.Animal, Cat{Type: "cat", Name: "Whiskers", Meows: true})
-	if !equals {
-		t.Fatalf("Not equal")
+	diff := cmp.Diff(message.Data.FocusedContainer.Value,
+		Window{
+			Type:     "window",
+			Id:       "db75115c-f333-46fb-a87b-eef291a530c1",
+			ParentId: "8f0ea4a4-17c0-4db6-aea4-f5b22a5c0726",
+			HasFocus: true})
+
+	if diff != "" {
+		t.Fatal(diff)
 	}
 }
