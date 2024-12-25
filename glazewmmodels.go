@@ -39,10 +39,45 @@ type Window struct {
 	// Note that there are other properties, but they are not relevant for our usecase
 }
 
+type Event interface {
+	GetEventType() string
+}
+
+type EventWrapper struct {
+	Value Event
+}
+
 // TODO: Base events
 type FocusChangedEvent struct {
 	EventType        string                  `json:"eventType"`
 	FocusedContainer FocusedContainerWrapper `json:"focusedContainer"`
+}
+
+func (event FocusChangedEvent) GetEventType() string {
+	return event.EventType
+}
+
+func (wrapper *EventWrapper) UnmarshalJSON(data []byte) error {
+	var distriminator struct {
+		Type string `json:"eventType"`
+	}
+
+	if err := json.Unmarshal(data, &distriminator); err != nil {
+		return err
+	}
+
+	switch distriminator.Type {
+	case "focus_changed":
+		var focusChanged FocusChangedEvent
+		if err := json.Unmarshal(data, &focusChanged); err != nil {
+			return err
+		}
+		wrapper.Value = focusChanged
+	default:
+		return errors.New(fmt.Sprintf("unknown type: %s", distriminator.Type))
+	}
+
+	return nil
 }
 
 type FocusedContainer interface {
