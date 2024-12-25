@@ -8,15 +8,22 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// Define the Animal interface
-type Animal interface {
+type AnimalWrapper struct {
+	Animal
 }
 
-// Define concrete types: Cat and Dog
+type Animal interface {
+	GetType() string
+}
+
 type Cat struct {
 	Type  string `json:"type"`
 	Name  string `json:"name"`
 	Meows bool   `json:"meows"`
+}
+
+func (c Cat) GetType() string {
+	return c.Type
 }
 
 type Dog struct {
@@ -25,13 +32,12 @@ type Dog struct {
 	Barks bool   `json:"barks"`
 }
 
-// A helper type for polymorphic deserialization
-type AnimalAdapter struct {
-	Animal
+func (d Dog) GetType() string {
+	return d.Type
 }
 
 // Implement the custom UnmarshalJSON method
-func (a *AnimalAdapter) UnmarshalJSON(data []byte) error {
+func (a *AnimalWrapper) UnmarshalJSON(data []byte) error {
 	// Check the "type" field first
 	var wrapper struct {
 		Type string `json:"type"`
@@ -40,7 +46,6 @@ func (a *AnimalAdapter) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Based on the type, unmarshal into the correct struct
 	switch wrapper.Type {
 	case "cat":
 		var cat Cat
@@ -65,7 +70,7 @@ func (a *AnimalAdapter) UnmarshalJSON(data []byte) error {
 func TestFoo(t *testing.T) {
 	jsonData := `{ "type": "cat", "name": "Whiskers", "meows": true }`
 
-	var animalAdapter AnimalAdapter
+	var animalAdapter AnimalWrapper
 	if err := json.Unmarshal([]byte(jsonData), &animalAdapter); err != nil {
 		t.Fatal("Error:", err)
 		return
