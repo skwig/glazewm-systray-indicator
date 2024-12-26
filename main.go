@@ -12,31 +12,31 @@ import (
 //go:embed assets/icons/0-1.ico
 var icon0 []byte
 
-//go:embed assets/icons/1-1.ico
+//go:embed assets/icons/1-1-tr.ico
 var icon1 []byte
 
-//go:embed assets/icons/2-1.ico
+//go:embed assets/icons/2-1-tr.ico
 var icon2 []byte
 
-//go:embed assets/icons/3-1.ico
+//go:embed assets/icons/3-1-tr.ico
 var icon3 []byte
 
-//go:embed assets/icons/4-1.ico
+//go:embed assets/icons/4-1-tr.ico
 var icon4 []byte
 
-//go:embed assets/icons/5-1.ico
+//go:embed assets/icons/5-1-tr.ico
 var icon5 []byte
 
-//go:embed assets/icons/6-1.ico
+//go:embed assets/icons/6-1-tr.ico
 var icon6 []byte
 
-//go:embed assets/icons/7-1.ico
+//go:embed assets/icons/7-1-tr.ico
 var icon7 []byte
 
-//go:embed assets/icons/8-1.ico
+//go:embed assets/icons/8-1-tr.ico
 var icon8 []byte
 
-//go:embed assets/icons/9-1.ico
+//go:embed assets/icons/9-1-tr.ico
 var icon9 []byte
 
 func onFocusChangedEvent(event FocusChangedEvent) {
