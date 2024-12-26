@@ -39,31 +39,44 @@ var icon8 []byte
 //go:embed assets/icons/9-1-tr.ico
 var icon9 []byte
 
-func onFocusChangedEvent(event FocusChangedEvent) {
-	var workspaceId string
-	switch s := event.FocusedContainer.Value.(type) {
-	case Window:
-		workspaceId = s.ParentId
-	case Workspace:
-		workspaceId = s.Id
-	default:
-		log.Fatalf("Unknown type %s", s)
+var workspacesById = make(map[string]string)
+var iconsByNumber = make(map[string][]byte)
+var ready = false
+
+func main() {
+	log.Println("Starting GlazeWmSysTrayIndicator")
+
+	err := loadIcons()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	workspaceName, ok := workspacesById[workspaceId]
-	if !ok {
-		log.Println("Unknown workspace", event)
+	connection, _, err := websocket.DefaultDialer.Dial("ws://localhost:6123", nil)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	onWorkspaceSelected(workspaceName)
+	err = loadWorkspaces(connection)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go reactToWorkspaceChanges(connection)
+	systray.Run(onReady, onExit)
 }
 
-func onWorkspaceActivatedEvent(event WorkspaceActivatedEvent) {
-	workspacesById[event.ActivatedWorkspace.Id] = event.ActivatedWorkspace.Name
+func onReady() {
+	ready = true
+	systray.SetTooltip("Pretty awesome超级棒")
+	systray.AddMenuItem("hello", "world")
+	systray.SetIcon(iconsByNumber["0"])
+}
+
+func onExit() {
+	// clean up here
 }
 
 func reactToWorkspaceChanges(connection *websocket.Conn) {
-	// TOOD: workspace creation / deletion
 	connection.WriteMessage(1, []byte("sub -e focus_changed workspace_activated"))
 	for {
 		var message GlazeWmMessage[EventWrapper]
@@ -96,9 +109,40 @@ func reactToWorkspaceChanges(connection *websocket.Conn) {
 	}
 }
 
-var workspacesById = make(map[string]string)
-var iconsByNumber = make(map[string][]byte)
-var ready = false
+func onFocusChangedEvent(event FocusChangedEvent) {
+	var workspaceId string
+	switch s := event.FocusedContainer.Value.(type) {
+	case Window:
+		workspaceId = s.ParentId
+	case Workspace:
+		workspaceId = s.Id
+	default:
+		log.Fatalf("Unknown type %s", s)
+	}
+
+	workspaceName, ok := workspacesById[workspaceId]
+	if !ok {
+		log.Println("Unknown workspace", event)
+	}
+
+	onWorkspaceSelected(workspaceName)
+}
+
+func onWorkspaceSelected(workspaceName string) {
+	log.Println("Switching to workspace '", workspaceName, "'")
+
+	if ready {
+		if workspaceName != "" {
+			systray.SetIcon(iconsByNumber[workspaceName])
+		} else {
+			systray.SetIcon(iconsByNumber["0"])
+		}
+	}
+}
+
+func onWorkspaceActivatedEvent(event WorkspaceActivatedEvent) {
+	workspacesById[event.ActivatedWorkspace.Id] = event.ActivatedWorkspace.Name
+}
 
 func loadIcons() error {
 	log.Println("Loading icons")
@@ -145,49 +189,4 @@ func loadWorkspaces(connection *websocket.Conn) error {
 	}
 
 	return nil
-}
-
-func main() {
-	log.Println("Starting GlazeWmSysTrayIndicator")
-
-	err := loadIcons()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	connection, _, err := websocket.DefaultDialer.Dial("ws://localhost:6123", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = loadWorkspaces(connection)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	go reactToWorkspaceChanges(connection)
-	systray.Run(onReady, onExit)
-}
-
-func onWorkspaceSelected(workspaceName string) {
-	log.Println("Switching to workspace '", workspaceName, "'")
-
-	if ready {
-		if workspaceName != "" {
-			systray.SetIcon(iconsByNumber[workspaceName])
-		} else {
-			systray.SetIcon(iconsByNumber["0"])
-		}
-	}
-}
-
-func onReady() {
-	ready = true
-	systray.SetTooltip("Pretty awesome超级棒")
-	systray.AddMenuItem("hello", "world")
-	systray.SetIcon(iconsByNumber["0"])
-}
-
-func onExit() {
-	// clean up here
 }
