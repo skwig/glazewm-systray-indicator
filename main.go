@@ -67,7 +67,7 @@ func main() {
 
 func onReady() {
 	ready = true
-	systray.SetTooltip("Pretty awesome超级棒")
+	systray.SetTooltip("GlazeWM indicator")
 	systray.AddMenuItem("hello", "world")
 	systray.SetIcon(iconsByNumber["0"])
 }
@@ -82,7 +82,7 @@ func reactToWorkspaceChanges(connection *websocket.Conn) {
 		var message GlazeWmMessage[EventWrapper]
 		_, buf, err := connection.ReadMessage()
 		if err != nil {
-			log.Println("read:", err)
+			log.Println("Read error", err)
 			continue
 		}
 
@@ -90,7 +90,7 @@ func reactToWorkspaceChanges(connection *websocket.Conn) {
 
 		err = json.Unmarshal(buf, &message)
 		if err != nil {
-			log.Println("read:", err)
+			log.Println("Unmarshal error", err)
 			continue
 		}
 
