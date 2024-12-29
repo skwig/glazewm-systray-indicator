@@ -39,7 +39,6 @@ var icon8 []byte
 //go:embed assets/icons/9-1-tr.ico
 var icon9 []byte
 
-var workspacesById = make(map[string]string)
 var iconsByNumber = make(map[string][]byte)
 var ready = false
 
@@ -52,11 +51,6 @@ func main() {
 	}
 
 	connection, _, err := websocket.DefaultDialer.Dial("ws://localhost:6123", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = loadWorkspaces(connection)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,16 +71,18 @@ func onExit() {
 }
 
 func reactToWorkspaceChanges(connection *websocket.Conn) {
-	connection.WriteMessage(1, []byte("sub -e focus_changed workspace_activated"))
+	connection.WriteMessage(1, []byte("sub -e focus_changed"))
+
+	// Kickstart the state
+	connection.WriteMessage(1, []byte("query monitors"))
+
 	for {
-		var message GlazeWmMessage[EventWrapper]
+		var message MessageWrapper
 		_, buf, err := connection.ReadMessage()
 		if err != nil {
 			log.Println("Read error", err)
 			continue
 		}
-
-		log.Println("Received ", string(buf))
 
 		err = json.Unmarshal(buf, &message)
 		if err != nil {
@@ -94,38 +90,27 @@ func reactToWorkspaceChanges(connection *websocket.Conn) {
 			continue
 		}
 
-		switch event := message.Data.Value.(type) {
-		case FocusChangedEvent:
-			onFocusChangedEvent(event)
-		case WorkspaceActivatedEvent:
-			onWorkspaceActivatedEvent(event)
+		switch t := message.Value.(type) {
+		case EventMessage:
+			connection.WriteMessage(1, []byte("query monitors"))
+		case ResponseMessage:
+			for _, monitor := range t.Data.Monitors {
+				if !monitor.HasFocus {
+					continue
+				}
+
+				for _, workspace := range monitor.Children {
+					if !workspace.HasFocus {
+						continue
+					}
+
+					onWorkspaceSelected(workspace.Name)
+				}
+			}
 		default:
-			log.Println("Unexpected event type", message.MessageType)
-			continue
+			log.Println("Received ", string(buf))
 		}
-
-		// TODO: edge case after registering:
-		// 2024/12/09 21:53:04 Received  {"messageType":"client_response","clientMessage":"sub -e focus_changed","data":{"subscriptionId":"08c01082-4b94-4731-b794-1b3147f180c1"},"error":null,"success":true}
 	}
-}
-
-func onFocusChangedEvent(event FocusChangedEvent) {
-	var workspaceId string
-	switch s := event.FocusedContainer.Value.(type) {
-	case Window:
-		workspaceId = s.ParentId
-	case Workspace:
-		workspaceId = s.Id
-	default:
-		log.Fatalf("Unknown type %s", s)
-	}
-
-	workspaceName, ok := workspacesById[workspaceId]
-	if !ok {
-		log.Println("Unknown workspace", event)
-	}
-
-	onWorkspaceSelected(workspaceName)
 }
 
 func onWorkspaceSelected(workspaceName string) {
@@ -138,10 +123,6 @@ func onWorkspaceSelected(workspaceName string) {
 			systray.SetIcon(iconsByNumber["0"])
 		}
 	}
-}
-
-func onWorkspaceActivatedEvent(event WorkspaceActivatedEvent) {
-	workspacesById[event.ActivatedWorkspace.Id] = event.ActivatedWorkspace.Name
 }
 
 func loadIcons() error {
@@ -158,34 +139,6 @@ func loadIcons() error {
 		iconsByNumber["7"] = icon7
 		iconsByNumber["8"] = icon8
 		iconsByNumber["9"] = icon9
-	}
-
-	return nil
-}
-
-func loadWorkspaces(connection *websocket.Conn) error {
-	log.Println("Loading workspaces")
-
-	connection.WriteMessage(1, []byte("query workspaces"))
-	var queryResponse GlazeWmMessage[Workspaces]
-	_, buf, err := connection.ReadMessage()
-	// err := connection.ReadJSON(&queryResponse)
-	if err != nil {
-		return err
-	}
-
-	log.Println("Initially received ", string(buf))
-
-	err = json.Unmarshal(buf, &queryResponse)
-	if err != nil {
-		return err
-	}
-
-	for _, w := range queryResponse.Data.Workspaces {
-		if w.HasFocus {
-			onWorkspaceSelected(w.Name)
-		}
-		workspacesById[w.Id] = w.Name
 	}
 
 	return nil
